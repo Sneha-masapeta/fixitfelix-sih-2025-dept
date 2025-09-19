@@ -78,7 +78,7 @@ const AppLayout = () => {
     <div className="h-screen flex flex-col bg-background">
       <Header user={user} onSignOut={handleSignOut} />
       
-      <div className="flex-1 flex relative">
+      <div className="flex-1 flex relative overflow-hidden">
         {/* Mobile Menu Button */}
         <Button
           variant="outline"
@@ -93,16 +93,14 @@ const AppLayout = () => {
         <div className={`
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
           md:translate-x-0 transition-transform duration-300 ease-in-out
-          w-full md:w-96 lg:w-[28rem] xl:w-[32rem] 
+          w-full md:w-96 lg:w-[28rem] xl:w-[32rem] flex-shrink-0
           bg-white border-r border-border 
           flex flex-col absolute md:relative z-40 h-full
           shadow-lg md:shadow-none
         `}>
 
-          <div className="p-4 border-b border-border bg-gradient-card">
-
-            {/* Tabs */}
-            <Tabs defaultValue="issues" className="w-full">
+          <Tabs defaultValue="issues" className="flex flex-col h-full">
+            <div className="p-4 border-b border-border bg-gradient-card shrink-0">
               <TabsList className="grid w-full grid-cols-2 h-10 bg-muted/50">
                 <TabsTrigger value="issues" className="flex items-center gap-2 text-sm">
                   <List className="w-4 h-4" />
@@ -113,30 +111,25 @@ const AppLayout = () => {
                   Report
                 </TabsTrigger>
               </TabsList>
+            </div>
+
+            <div className="flex-1 h-0 overflow-y-auto">
+              <TabsContent value="issues" className="p-4">
+                <IssueList 
+                  refreshTrigger={refreshTrigger} 
+                  onIssueSelect={handleIssueSelect}
+                />
+              </TabsContent>
               
-              {/* Content Area */}
-              <div className="flex-1 overflow-hidden">
-                <TabsContent value="issues" className="h-full mt-4">
-                  <div className="h-full overflow-y-auto">
-                    <IssueList 
-                      refreshTrigger={refreshTrigger} 
-                      onIssueSelect={handleIssueSelect}
-                    />
-                  </div>
-                </TabsContent>
-                
-                <TabsContent value="report" className="h-full mt-4">
-                  <div className="h-full overflow-y-auto">
-                    <IssueForm onSuccess={handleSuccess} />
-                  </div>
-                </TabsContent>
-              </div>
-            </Tabs>
-          </div>
+              <TabsContent value="report" className="p-4">
+                <IssueForm onSuccess={handleSuccess} />
+              </TabsContent>
+            </div>
+          </Tabs>
         </div>
 
         {/* Right Map Area */}
-        <div className="flex-1 relative">
+        <div className="flex-1 w-full relative overflow-hidden">
           <MapView 
             selectedIssue={selectedIssue}
             onIssueSelect={handleIssueSelect}

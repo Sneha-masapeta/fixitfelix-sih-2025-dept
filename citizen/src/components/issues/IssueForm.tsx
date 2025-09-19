@@ -7,14 +7,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Upload, X, Camera, FileText, AlertTriangle } from 'lucide-react';
+import { Upload, X, Camera, FileText, MapPin, AlertTriangle } from 'lucide-react';
 import LocationSelector from '../map/LocationSelector';
 
 interface IssueFormProps {
   onSuccess: () => void;
 }
-
-type Location = { lat: number; lng: number };
 
 const ISSUE_CATEGORIES = [
   { value: 'pothole', label: 'Pothole', icon: '🕳️' },
@@ -41,7 +39,7 @@ const IssueForm = ({ onSuccess }: IssueFormProps) => {
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
   const [priority, setPriority] = useState('medium');
-  const [location, setLocation] = useState<Location | null>(null);
+  const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [images, setImages] = useState<File[]>([]);
   const [imagePreview, setImagePreview] = useState<string[]>([]);
   const { toast } = useToast();
@@ -60,12 +58,13 @@ const IssueForm = ({ onSuccess }: IssueFormProps) => {
     const newImages = [...images, ...files];
     setImages(newImages);
 
+    // Generate previews
     const newPreviews = [...imagePreview];
     files.forEach(file => {
       const reader = new FileReader();
-      reader.onload = (ev) => {
-        if (ev.target?.result) {
-          newPreviews.push(ev.target.result as string);
+      reader.onload = (e) => {
+        if (e.target?.result) {
+          newPreviews.push(e.target.result as string);
           setImagePreview([...newPreviews]);
         }
       };
@@ -74,146 +73,146 @@ const IssueForm = ({ onSuccess }: IssueFormProps) => {
   };
 
   const removeImage = (index: number) => {
-    setImages(images.filter((_, i) => i !== index));
-    setImagePreview(imagePreview.filter((_, i) => i !== index));
+    const newImages = images.filter((_, i) => i !== index);
+    const newPreviews = imagePreview.filter((_, i) => i !== index);
+    setImages(newImages);
+    setImagePreview(newPreviews);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!location) {
-    toast({
-      variant: "destructive",
-      title: "Location required",
-      description: "Please select a location for the issue.",
-    });
-    return;
-  }
-
-  if (!category) {
-    toast({
-      variant: "destructive",
-      title: "Category required",
-      description: "Please select a category for the issue.",
-    });
-    return;
-  }
-
-  setLoading(true);
-  try {
-    // Get current user from Supabase Auth
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error("User not authenticated");
-
-    // Upsert user into your 'users' table to satisfy FK
-    await supabase.from('users').upsert({
-      id: user.id,
-      name: user.user_metadata?.full_name || user.email || '',
-    });
-
-    // Create issue with PostGIS location
-    const issueId = crypto.randomUUID();
-    const { data: issue, error: issueError } = await supabase
-      .from('issues')
-      .insert({
-        id: issueId,
-        title,
-        description,
-        category,
-        priority,
-        user_id: user.id,
-        location: `SRID=4326;POINT(${location.lng} ${location.lat})`, // PostGIS geography point
-      })
-      .select()
-      .single();
-
-    if (issueError) throw issueError;
-
-    // Upload images if any
-    if (images.length > 0 && issue) {
-      for (let i = 0; i < images.length; i++) {
-        const file = images[i];
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${issue.id}/${Date.now()}-${i}.${fileExt}`;
-
-        // Upload to storage
-        const { error: uploadError } = await supabase.storage
-          .from('issue-images')
-          .upload(fileName, file);
-
-        if (uploadError) {
-          console.warn("Image upload failed:", uploadError);
-          continue;
-        }
-
-        // Get public URL
-        const { data } = supabase.storage
-          .from('issue-images')
-          .getPublicUrl(fileName);
-
-        // Save image record
-        const { error: imageError } = await supabase
-          .from('images')
-          .insert({
-            id: crypto.randomUUID(),
-            issue_id: issue.id,
-            url: data.publicUrl,
-          });
-
-        if (imageError) {
-          console.warn("Image record creation failed:", imageError);
-        }
-      }
+    e.preventDefault();
+    if (!location) {
+      toast({
+        variant: "destructive",
+        title: "Location required",
+        description: "Please select a location for the issue.",
+      });
+      return;
     }
 
-    toast({
-      title: "Issue reported successfully!",
-      description: "Thank you for helping improve your community.",
-    });
+    if (!category) {
+      toast({
+        variant: "destructive",
+        title: "Category required",
+        description: "Please select a category for the issue.",
+      });
+      return;
+    }
 
-    // Reset form
-    setTitle("");
-    setDescription("");
-    setCategory("");
-    setPriority("medium");
-    setLocation(null);
-    setImages([]);
-    setImagePreview([]);
+    setLoading(true);
+    try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
 
-    onSuccess();
-  } catch (error: any) {
-    toast({
-      variant: "destructive",
-      title: "Failed to report issue",
-      description: error.message,
-    });
-  } finally {
-    setLoading(false);
-  }
-};
+      // Create issue
+      const issueId = crypto.randomUUID();
+      const { data: issue, error: issueError } = await supabase
+        .from('issues')
+        .insert({
+          id: issueId,
+          title,
+          description,
+          category,
+          priority,
+          user_id: user.id,
+          location: {
+            type: "Point",
+            coordinates: [location.lng, location.lat], // GeoJSON expects [lng, lat]
+          },
+        })
+        .select()
+        .single();
 
+      if (issueError) throw issueError;
+
+      // Upload images if any
+      if (images.length > 0 && issue) {
+        for (let i = 0; i < images.length; i++) {
+          const file = images[i];
+          const fileExt = file.name.split('.').pop();
+          const fileName = `${issue.id}/${Date.now()}-${i}.${fileExt}`;
+
+          // Upload to storage
+          const { error: uploadError } = await supabase.storage
+            .from('issue-images')
+            .upload(fileName, file);
+
+          if (uploadError) {
+            console.warn('Image upload failed:', uploadError);
+            continue; // Continue with other images
+          }
+
+          // Get public URL
+          const { data } = supabase.storage
+            .from('issue-images')
+            .getPublicUrl(fileName);
+
+          // Save image record
+          const { error: imageError } = await supabase
+            .from('images')
+            .insert({
+              id: crypto.randomUUID(),
+              issue_id: issue.id,
+              url: data.publicUrl,
+            });
+
+          if (imageError) {
+            console.warn('Image record creation failed:', imageError);
+          }
+        }
+      }
+
+      toast({
+        title: "Issue reported successfully!",
+        description: "Thank you for helping improve your community.",
+      });
+
+      // Reset form
+      setTitle('');
+      setDescription('');
+      setCategory('');
+      setPriority('medium');
+      setLocation(null);
+      setImages([]);
+      setImagePreview([]);
+      
+      onSuccess();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Failed to report issue",
+        description: error.message,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const selectedCategory = ISSUE_CATEGORIES.find(cat => cat.value === category);
   const selectedPriority = PRIORITY_LEVELS.find(p => p.value === priority);
 
   return (
-    <div className="space-y-4">
-      <Card className="shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+    <div className="space-y-6">
+      <Card className="shadow-card-custom border-0 bg-gradient-card">
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
               <FileText className="w-5 h-5 text-primary-foreground" />
             </div>
-            Report Issue
+            <div>
+              <h2 className="text-xl font-semibold">Report an Issue</h2>
+              <p className="text-sm text-muted-foreground font-normal">Help improve your community</p>
+            </div>
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* category + priority */}
-            <div className="grid grid-cols-1 gap-4">
+        <CardContent className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="category">Issue Category *</Label>
                 <Select value={category} onValueChange={setCategory} required>
-                  <SelectTrigger className="h-10">
+                  <SelectTrigger className="h-12">
                     <SelectValue placeholder="Select category">
                       {selectedCategory && (
                         <div className="flex items-center gap-2">
@@ -239,7 +238,7 @@ const IssueForm = ({ onSuccess }: IssueFormProps) => {
               <div className="space-y-2">
                 <Label htmlFor="priority">Priority Level</Label>
                 <Select value={priority} onValueChange={setPriority}>
-                  <SelectTrigger className="h-10">
+                  <SelectTrigger className="h-12">
                     <SelectValue>
                       {selectedPriority && (
                         <div className="flex items-center gap-2">
@@ -263,7 +262,6 @@ const IssueForm = ({ onSuccess }: IssueFormProps) => {
               </div>
             </div>
 
-            {/* title + description */}
             <div className="space-y-2">
               <Label htmlFor="title">Issue Title *</Label>
               <Input
@@ -271,7 +269,7 @@ const IssueForm = ({ onSuccess }: IssueFormProps) => {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Brief description of the issue"
-                className="h-10"
+                className="h-12"
                 required
               />
             </div>
@@ -282,16 +280,15 @@ const IssueForm = ({ onSuccess }: IssueFormProps) => {
                 id="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Provide more details about the issue..."
+                placeholder="Provide more details about the issue, when you noticed it, and any other relevant information..."
                 rows={4}
-                className="resize-none text-sm"
+                className="resize-none"
               />
             </div>
 
-            {/* images */}
             <div className="space-y-2">
               <Label>Photos (Optional)</Label>
-              <div className="border-2 border-dashed border-border rounded-lg p-4 text-center hover:border-primary/50 transition-colors">
+              <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
                 <input
                   type="file"
                   multiple
@@ -304,11 +301,11 @@ const IssueForm = ({ onSuccess }: IssueFormProps) => {
                   htmlFor="image-upload"
                   className="cursor-pointer flex flex-col items-center gap-3"
                 >
-                  <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                    <Camera className="w-5 h-5 text-primary" />
+                  <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
+                    <Camera className="w-6 h-6 text-primary" />
                   </div>
                   <div>
-                    <p className="font-medium text-sm text-foreground">Upload photos</p>
+                    <p className="font-medium text-foreground">Upload photos</p>
                     <p className="text-sm text-muted-foreground">
                       Click to add up to 5 images (JPG, PNG)
                     </p>
@@ -317,13 +314,13 @@ const IssueForm = ({ onSuccess }: IssueFormProps) => {
               </div>
 
               {imagePreview.length > 0 && (
-                <div className="grid grid-cols-3 gap-2 mt-3">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4">
                   {imagePreview.map((preview, index) => (
                     <div key={index} className="relative group">
                       <img
                         src={preview}
                         alt={`Preview ${index + 1}`}
-                        className="w-full h-20 object-cover rounded-lg border"
+                        className="w-full h-24 object-cover rounded-lg border"
                       />
                       <button
                         type="button"
@@ -338,17 +335,21 @@ const IssueForm = ({ onSuccess }: IssueFormProps) => {
               )}
             </div>
 
-            {/* warning */}
-            <div className="flex items-start gap-2 p-3 bg-warning/10 rounded-lg border border-warning/20">
-              <AlertTriangle className="w-4 h-4 text-warning flex-shrink-0 mt-0.5" />
-              <p className="text-xs text-warning-foreground">
+            <div className="flex items-center gap-2 p-4 bg-warning/10 rounded-lg border border-warning/20">
+              <AlertTriangle className="w-5 h-5 text-warning flex-shrink-0" />
+              <p className="text-sm text-warning-foreground">
                 Please ensure your location is accurate below. This helps local authorities respond effectively.
               </p>
             </div>
 
+            <LocationSelector
+              onLocationSelect={(lat, lng) => setLocation({ lat, lng })}
+              selectedLocation={location}
+            />
+
             <Button
               type="submit"
-              className="w-full h-10 shadow-civic text-sm font-medium"
+              className="w-full h-12 shadow-civic text-base font-medium"
               disabled={loading || !location || !category}
             >
               {loading ? (
@@ -366,13 +367,6 @@ const IssueForm = ({ onSuccess }: IssueFormProps) => {
           </form>
         </CardContent>
       </Card>
-
-      <div className="space-y-2">
-        <LocationSelector
-          onLocationSelect={(lat, lng) => setLocation({ lat, lng })}
-          selectedLocation={location}
-        />
-      </div>
     </div>
   );
 };
