@@ -84,83 +84,82 @@ const Header = ({ user, onSignOut }: HeaderProps) => {
 
   return (
     <header className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border sticky top-0 z-50 shadow-sm">
-      <div className="container mx-auto px-4 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-primary rounded-xl flex items-center justify-center shadow-civic">
-              <MapPin className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-                CivicFix
-              </h1>
-              <p className="text-xs text-muted-foreground">Improving Communities Together</p>
-            </div>
-          </div>
-
-          {user && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-10 w-10 rounded-full hover:shadow-civic transition-shadow">
-                  <Avatar className="h-10 w-10 border-2 border-primary/20">
-                    <AvatarImage 
-                      src={getUserAvatar()} 
-                      alt={displayName}
-                      className="object-cover"
-                    />
-                    <AvatarFallback className="bg-gradient-primary text-white text-sm font-medium">
-                      {getInitials(displayName)}
-                    </AvatarFallback>
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-64" align="end" forceMount>
-                <DropdownMenuLabel className="font-normal">
-                  <div className="flex flex-col space-y-2">
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage 
-                          src={getUserAvatar()} 
-                          alt={displayName}
-                          className="object-cover"
-                        />
-                        <AvatarFallback className="bg-gradient-primary text-white text-xs">
-                          {getInitials(displayName)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex flex-col">
-                        <p className="text-sm font-medium leading-none">
-                          {displayName}
-                        </p>
-                        <p className="text-xs leading-none text-muted-foreground mt-1">
-                          {user.email}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem disabled className="cursor-not-allowed opacity-50">
-                  <UserIcon className="mr-2 h-4 w-4" />
-                  <span>Profile</span>
-                  <span className="ml-auto text-xs text-muted-foreground">Soon</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem disabled className="cursor-not-allowed opacity-50">
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>Settings</span>
-                  <span className="ml-auto text-xs text-muted-foreground">Soon</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut} className="text-destructive focus:text-destructive">
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Sign out</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-        </div>
+  <div className="px-6 py-3 flex items-center justify-between">
+    <div className="flex items-center gap-3">
+      <div className="w-10 h-10 bg-gradient-primary rounded-xl flex items-center justify-center shadow-civic">
+        <MapPin className="w-5 h-5 text-white" />
       </div>
-    </header>
+      <div>
+        <h1 className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+          CivicFix
+        </h1>
+        <p className="text-xs text-muted-foreground">Improving Communities Together</p>
+      </div>
+    </div>
+
+    {user && (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" className="relative h-10 w-10 rounded-full hover:shadow-civic transition-shadow">
+            <Avatar className="h-10 w-10 border-2 border-primary/20">
+              <AvatarImage 
+                src={getUserAvatar()} 
+                alt={displayName}
+                className="object-cover"
+              />
+              <AvatarFallback className="bg-gradient-primary text-white text-sm font-medium">
+                {getInitials(displayName)}
+              </AvatarFallback>
+            </Avatar>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="w-64" align="end" forceMount>
+          <DropdownMenuLabel className="font-normal">
+            <div className="flex flex-col space-y-2">
+              <div className="flex items-center gap-3">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage 
+                    src={getUserAvatar()} 
+                    alt={displayName}
+                    className="object-cover"
+                  />
+                  <AvatarFallback className="bg-gradient-primary text-white text-xs">
+                    {getInitials(displayName)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col">
+                  <p className="text-sm font-medium leading-none">
+                    {displayName}
+                  </p>
+                  <p className="text-xs leading-none text-muted-foreground mt-1">
+                    {user.email}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem disabled className="cursor-not-allowed opacity-50">
+            <UserIcon className="mr-2 h-4 w-4" />
+            <span>Profile</span>
+            <span className="ml-auto text-xs text-muted-foreground">Soon</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem disabled className="cursor-not-allowed opacity-50">
+            <Settings className="mr-2 h-4 w-4" />
+            <span>Settings</span>
+            <span className="ml-auto text-xs text-muted-foreground">Soon</span>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={handleSignOut} className="text-destructive focus:text-destructive">
+            <LogOut className="mr-2 h-4 w-4" />
+            <span>Sign out</span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    )}
+  </div>
+</header>
+
   );
 };
 
