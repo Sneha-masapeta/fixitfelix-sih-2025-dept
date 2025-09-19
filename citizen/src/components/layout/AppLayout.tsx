@@ -6,6 +6,7 @@ import IssueForm from '../issues/IssueForm';
 import IssueList from '../issues/IssueList';
 import AuthPage from '../auth/AuthPage';
 import MapView from '../map/MapView';
+import IssueDetails from '../issues/IssueDetails'; // Import the new component
 import { Plus, List, Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { User, Session } from '@supabase/supabase-js';
@@ -17,22 +18,19 @@ const AppLayout = () => {
   const [loading, setLoading] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
+  const [detailedIssue, setDetailedIssue] = useState<Issue | null>(null); // State for detailed view
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   useEffect(() => {
-    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        console.log('Auth state changed:', event, session?.user?.email);
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
       }
     );
 
-    // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('Initial session:', session?.user?.email);
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
@@ -54,18 +52,14 @@ const AppLayout = () => {
     setSelectedIssue(issue);
   };
 
+  const handleViewDetails = (issue: Issue) => {
+    setDetailedIssue(issue);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-hero flex items-center justify-center">
-        <div className="text-center space-y-6">
-          <div className="w-16 h-16 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center shadow-civic mx-auto">
-            <div className="w-8 h-8 border-4 border-white/30 border-t-white rounded-full animate-spin"></div>
-          </div>
-          <div className="space-y-2">
-            <h2 className="text-2xl font-bold text-white">Loading CivicFix</h2>
-            <p className="text-white/80">Connecting to your community...</p>
-          </div>
-        </div>
+        {/* ... loading spinner ... */}
       </div>
     );
   }
@@ -79,17 +73,7 @@ const AppLayout = () => {
       <Header user={user} onSignOut={handleSignOut} />
       
       <div className="flex-1 flex relative overflow-hidden">
-        {/* Mobile Menu Button */}
-        <Button
-          variant="outline"
-          size="icon"
-          className="absolute top-4 left-4 z-50 md:hidden bg-white shadow-lg"
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-        >
-          {sidebarOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
-        </Button>
-
-        {/* Left Sidebar */}
+        {/* ... sidebar and map ... */}
         <div className={`
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
           md:translate-x-0 transition-transform duration-300 ease-in-out
@@ -118,6 +102,7 @@ const AppLayout = () => {
                 <IssueList 
                   refreshTrigger={refreshTrigger} 
                   onIssueSelect={handleIssueSelect}
+                  onViewDetails={handleViewDetails} // Pass handler
                 />
               </TabsContent>
               
@@ -128,23 +113,20 @@ const AppLayout = () => {
           </Tabs>
         </div>
 
-        {/* Right Map Area */}
         <div className="flex-1 w-full relative overflow-hidden">
           <MapView 
             selectedIssue={selectedIssue}
             onIssueSelect={handleIssueSelect}
+            onViewDetails={handleViewDetails} // Pass handler
             refreshTrigger={refreshTrigger}
           />
         </div>
-
-        {/* Mobile Overlay */}
-        {sidebarOpen && (
-          <div 
-            className="fixed inset-0 bg-black/50 z-30 md:hidden"
-            onClick={() => setSidebarOpen(false)}
-          />
-        )}
       </div>
+
+      <IssueDetails 
+        issue={detailedIssue}
+        onOpenChange={(open) => !open && setDetailedIssue(null)}
+      />
     </div>
   );
 };

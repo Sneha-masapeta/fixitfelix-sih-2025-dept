@@ -13,6 +13,7 @@ import { Issue } from '@/integrations/supabase/types';
 interface IssueListProps {
   refreshTrigger: number;
   onIssueSelect?: (issue: Issue) => void;
+  onViewDetails: (issue: Issue) => void; // Added prop
 }
 
 const ISSUE_CATEGORIES = [
@@ -27,7 +28,7 @@ const ISSUE_CATEGORIES = [
   { value: 'other', label: 'Other', icon: '📝' },
 ];
 
-const IssueList = ({ refreshTrigger, onIssueSelect }: IssueListProps) => {
+const IssueList = ({ refreshTrigger, onIssueSelect, onViewDetails }: IssueListProps) => {
   const [issues, setIssues] = useState<Issue[]>([]);
   const [filteredIssues, setFilteredIssues] = useState<Issue[]>([]);
   const [loading, setLoading] = useState(true);
@@ -339,7 +340,15 @@ const IssueList = ({ refreshTrigger, onIssueSelect }: IssueListProps) => {
                         )}
                       </div>
                       
-                      <Button variant="ghost" size="sm" className="h-8 px-2">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 px-2"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onViewDetails(issue);
+                        }}
+                      >
                         <Eye className="w-3 h-3 mr-1" />
                         <span className="text-xs">View</span>
                       </Button>
